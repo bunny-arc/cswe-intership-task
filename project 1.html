@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CDPL – Drone Telemetry Simulator</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #050711;
+      color: #e5f3ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .telemetry-container {
+      width: 930px;
+      padding: 20px 30px;
+      background: radial-gradient(circle at top, #19233a, #050711);
+      border-radius: 16px;
+      box-shadow: 0 0 35px rgba(0, 255, 255, 0.3);
+      border: 1px solid #2e3a5f;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .title {
+      font-size: 20px;
+      letter-spacing: 1px;
+      color: #7fd3ff;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: #8b9ac0;
+    }
+    .divider {
+      border-bottom: 1px solid #2e3a5f;
+      margin: 8px 0 14px 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1.1fr 0.9fr;
+      column-gap: 16px;
+    }
+    .card {
+      background: rgba(8, 15, 32, 0.8);
+      border-radius: 10px;
+      padding: 14px 16px;
+      border: 1px solid #232b44;
+      margin-bottom: 12px;
+    }
+    .card-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #939cc7;
+      margin-bottom: 8px;
+    }
+    .metric-value {
+      font-size: 26px;
+      font-weight: bold;
+      color: #e8f6ff;
+    }
+    .metric-unit {
+      font-size: 13px;
+      color: #9baaef;
+      margin-left: 6px;
+    }
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #707aa4;
+      margin-top: 4px;
+    }
+    .footer {
+      margin-top: 10px;
+      font-size: 11px;
+      color: #7b88b5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .timer-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 6px;
+      animation: pulse 1s infinite;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .timer-text {
+      font-size: 12px;
+      color: #d1e3ff;
+    }
+
+    /* ON/OFF button (drone link) */
+    .toggle-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+    .toggle-label {
+      font-size: 11px;
+      color: #9ca3af;
+      text-align: right;
+    }
+    .toggle-button {
+      position: relative;
+      width: 90px;
+      height: 32px;
+      border-radius: 16px;
+      border: 1px solid #4b5563;
+      background: #020617;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      padding: 2px;
+      box-sizing: border-box;
+    }
+    .toggle-knob {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #6b7280;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+    .toggle-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+      color: #e5e7eb;
+      pointer-events: none;
+    }
+    .toggle-on {
+      background: linear-gradient(90deg, #22c55e, #22d3ee);
+      border-color: #22c55e;
+    }
+    .toggle-on .toggle-knob {
+      transform: translateX(56px);
+      background: #f9fafb;
+    }
+
+    /* Altitude ring indicator */
+    .altitude-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .altitude-indicator {
+      position: relative;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 2px solid #4b5563;
+      background: radial-gradient(circle at 30% 30%, #1e293b, #020617);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .altitude-indicator-inner {
+      position: absolute;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.7);
+    }
+    .altitude-pointer {
+      position: absolute;
+      width: 2px;
+      height: 26px;
+      background: linear-gradient(to top, #f97316, #facc15);
+      bottom: 35px;
+      left: 50%;
+      transform-origin: bottom center;
+      transform: translateX(-50%) rotate(0deg);
+      transition: transform 0.3s ease-out;
+    }
+    .altitude-indicator-label {
+      position: absolute;
+      bottom: 4px;
+      font-size: 9px;
+      color: #e5e7eb;
+    }
+
+    /* Speedometer gauge */
+    .speedometer-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 6px;
+    }
+    .speedometer {
+      position: relative;
+      width: 150px;
+      height: 75px;
+      border-top-left-radius: 150px;
+      border-top-right-radius: 150px;
+      background: radial-gradient(circle at 50% 120%, #050711 0, #111827 50%, #020617 100%);
+      border: 2px solid #374151;
+      overflow: hidden;
+    }
+    .speedometer-arc {
+      position: absolute;
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 10px solid transparent;
+      border-top-color: #22d3ee;
+      border-left-color: #22d3ee;
+      border-right-color: #4ade80;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) rotate(135deg);
+      opacity: 0.85;
+    }
+    .speedometer-center {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      bottom: -2px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 4;
+    }
+    .speedometer-needle {
+      position: absolute;
+      width: 2px;
+      height: 70px;
+      background: linear-gradient(to top, #f97316, #facc15);
+      bottom: 7px;
+      left: 50%;
+      transform-origin: bottom center;
+      transform: translateX(-50%) rotate(-90deg);
+      transition: transform 0.4s ease-out;
+      z-index: 3;
+    }
+    .speedometer-scale {
+      position: absolute;
+      width: 100%;
+      bottom: 4px;
+      text-align: center;
+      font-size: 10px;
+      color: #9ca3af;
+    }
+    .speed-label {
+      font-size: 11px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* Battery combined (text + visual) */
+    .battery-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 6px;
+    }
+    .battery-body {
+      position: relative;
+      width: 40px;
+      height: 85px;
+      border-radius: 6px;
+      border: 2px solid #9ca3af;
+      box-shadow: inset 0 0 8px rgba(15, 23, 42, 0.7);
+      background: linear-gradient(to top, #020617, #111827);
+      overflow: hidden;
+    }
+    .battery-cap {
+      width: 18px;
+      height: 6px;
+      border-radius: 4px 4px 0 0;
+      background: #9ca3af;
+      margin-left: 11px;
+      margin-bottom: 3px;
+    }
+    .battery-level {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(to top, #22c55e, #4ade80);
+      transition: height 0.4s ease-out, background 0.4s ease-out;
+      height: 100%;
+    }
+    .battery-level.low {
+      background: linear-gradient(to top, #f97316, #ef4444);
+    }
+    .battery-text-block {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: #e5e7eb;
+    }
+    .battery-percent-large {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .battery-status-label {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    /* GPS indicator */
+    .gps-indicator-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+    .gps-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #8a96c4;
+      margin-bottom: 2px;
+    }
+    .gps-row {
+      font-size: 13px;
+      color: #d3e7ff;
+      margin-bottom: 6px;
+    }
+    .gps-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+    }
+    .gps-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.7);
+    }
+    .gps-dot-lost {
+      background: #ef4444;
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
+    }
+
+    /* Status bar */
+    .status-bar {
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-normal {
+      background: rgba(22, 163, 74, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.6);
+      color: #bbf7d0;
+    }
+    .status-warning {
+      background: rgba(234, 179, 8, 0.16);
+      border: 1px solid rgba(234, 179, 8, 0.8);
+      color: #facc15;
+    }
+    .status-critical {
+      background: rgba(248, 113, 113, 0.16);
+      border: 1px solid rgba(248, 113, 113, 0.8);
+      color: #fecaca;
+    }
+    .status-label {
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+    .status-text {
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="telemetry-container">
+  <div class="header">
+    <div>
+      <div class="title">CDPL · Drone Telemetry</div>
+      <div class="subtitle">Simulated link to drone · CSWE Internship Task</div>
+    </div>
+    <div class="toggle-wrapper">
+      <div class="toggle-label">Telemetry link to drone</div>
+      <div id="power-toggle" class="toggle-button toggle-on">
+        <div class="toggle-knob"></div>
+        <div id="toggle-text" class="toggle-text">ON</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="grid">
+    <!-- Column 1: Altitude + Battery (combined) -->
+    <div>
+      <div class="card">
+        <div class="card-title">Altitude</div>
+        <div class="altitude-wrapper">
+          <div class="altitude-indicator">
+            <div class="altitude-indicator-inner"></div>
+            <div id="altitude-pointer" class="altitude-pointer"></div>
+            <div class="altitude-indicator-label">ALT</div>
+          </div>
+          <div>
+            <div>
+              <span id="altitude" class="metric-value">0.0</span>
+              <span class="metric-unit">m</span>
+            </div>
+            <div class="label-row">
+              <span>Above ground (simulated)</span>
+              <span>Max 120 m</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Battery</div>
+        <div class="battery-box">
+          <div>
+            <div class="battery-cap"></div>
+            <div class="battery-body">
+              <div id="battery-level" class="battery-level"></div>
+            </div>
+          </div>
+          <div class="battery-text-block">
+            <div>
+              <span id="battery-percent-text" class="battery-percent-large">100%</span>
+            </div>
+            <div id="battery-status-label" class="battery-status-label">Healthy</div>
+            <div>Onboard LiPo (simulated)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 2: Speed + speedometer -->
+    <div>
+      <div class="card">
+        <div class="card-title">Speed</div>
+        <div>
+          <span id="speed" class="metric-value">0.0</span>
+          <span class="metric-unit">m/s</span>
+        </div>
+        <div class="label-row">
+          <span>Ground speed</span>
+          <span>Max 18 m/s</span>
+        </div>
+
+        <div class="speedometer-wrapper">
+          <div class="speedometer">
+            <div class="speedometer-arc"></div>
+            <div id="speed-needle" class="speedometer-needle"></div>
+            <div class="speedometer-center"></div>
+            <div class="speedometer-scale">
+              0&nbsp;&nbsp;|&nbsp;&nbsp;6&nbsp;&nbsp;|&nbsp;&nbsp;12&nbsp;&nbsp;|&nbsp;&nbsp;18
+            </div>
+          </div>
+        </div>
+        <div class="speed-label">Real‑time speedometer (simulated link)</div>
+      </div>
+    </div>
+
+    <!-- Column 3: GPS + status -->
+    <div>
+      <div class="card">
+        <div class="gps-indicator-row">
+          <div class="card-title">GPS Coordinates</div>
+          <div class="gps-status">
+            <div id="gps-dot" class="gps-dot"></div>
+            <span id="gps-status-text">GPS LOCK</span>
+          </div>
+        </div>
+        <div class="gps-label">Latitude</div>
+        <div id="latitude" class="gps-row">0.00000° N</div>
+        <div class="gps-label">Longitude</div>
+        <div id="longitude" class="gps-row">0.00000° E</div>
+      </div>
+
+      <div id="status-bar" class="card status-bar status-normal">
+        <div>
+          <div id="status-label" class="status-label">IN FLIGHT – STABLE</div>
+          <div id="status-text" class="status-text">
+            Telemetry streaming at 1 Hz – all systems nominal.
+          </div>
+        </div>
+        <div class="subtitle" id="time-elapsed">00 / 30 s</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div>
+      <span id="timer-dot" class="timer-dot"></span>
+      <span id="footer-timer" class="timer-text">Simulation running…</span>
+    </div>
+    <div>Note: All values are simulated for the CSWE internship task.</div>
+  </div>
+</div>
+
+<script>
+  // Simulated drone telemetry state
+  let altitude = 5.0;
+  let speed = 0.0;
+  let battery = 100.0;
+  const duration = 30; // seconds
+  let elapsed = 0;
+
+  // Simulated GPS position near Hyderabad
+  let lat = 17.3850 + (Math.random() * 0.02 - 0.01);
+  let lon = 78.4867 + (Math.random() * 0.02 - 0.01);
+
+  // ON/OFF state for "drone link"
+  let powerOn = true;
+  let timerId = null;
+
+  function formatCoord(value, isLat) {
+    const hemi = isLat
+      ? (value >= 0 ? "N" : "S")
+      : (value >= 0 ? "E" : "W");
+    return Math.abs(value).toFixed(5) + "° " + hemi;
+  }
+
+  function updateStatus() {
+    const statusBar = document.getElementById("status-bar");
+    const statusLabel = document.getElementById("status-label");
+    const statusText = document.getElementById("status-text");
+    const batteryStatusLabel = document.getElementById("battery-status-label");
+    const batteryLevel = document.getElementById("battery-level");
+
+    if (!powerOn) {
+      statusBar.className = "card status-bar status-warning";
+      statusLabel.textContent = "LINK OFF";
+      statusText.textContent = "Telemetry paused – toggle ON to resume simulated drone link.";
+      batteryStatusLabel.textContent = "Unknown";
+      return;
+    }
+
+    if (battery < 15) {
+      statusBar.className = "card status-bar status-critical";
+      statusLabel.textContent = "CRITICAL: RETURN TO HOME";
+      statusText.textContent = "Battery below 15%. Immediate landing required.";
+      batteryStatusLabel.textContent = "Critical";
+      batteryLevel.classList.add("low");
+    } else if (battery < 30) {
+      statusBar.className = "card status-bar status-warning";
+      statusLabel.textContent = "LOW BATTERY – LAND SOON";
+      statusText.textContent = "Plan descent and landing – reserve capacity only.";
+      batteryStatusLabel.textContent = "Low";
+      batteryLevel.classList.add("low");
+    } else if (speed < 0.5 && altitude < 1) {
+      statusBar.className = "card status-bar status-normal";
+      statusLabel.textContent = "IDLE / LANDED";
+      statusText.textContent = "Motors disarmed, awaiting next mission.";
+      batteryStatusLabel.textContent = "Healthy";
+      batteryLevel.classList.remove("low");
+    } else {
+      statusBar.className = "card status-bar status-normal";
+      statusLabel.textContent = "IN FLIGHT – STABLE";
+      statusText.textContent = "Telemetry streaming at 1 Hz – all systems nominal.";
+      batteryStatusLabel.textContent = "Healthy";
+      batteryLevel.classList.remove("low");
+    }
+  }
+
+  function updateSpeedometer() {
+    const needle = document.getElementById("speed-needle");
+    const maxSpeed = 18;
+    const clampedSpeed = Math.max(0, Math.min(maxSpeed, speed));
+    // -90° to +90°
+    const angle = -90 + (clampedSpeed / maxSpeed) * 180;
+    needle.style.transform = "translateX(-50%) rotate(" + angle.toFixed(1) + "deg)";
+  }
+
+  function updateAltitudeIndicator() {
+    const pointer = document.getElementById("altitude-pointer");
+    const maxAlt = 120;
+    const clampedAlt = Math.max(0, Math.min(maxAlt, altitude));
+    // 0 m -> -90°, 120 m -> +90°
+    const angle = -90 + (clampedAlt / maxAlt) * 180;
+    pointer.style.transform = "translateX(-50%) rotate(" + angle.toFixed(1) + "deg)";
+  }
+
+  function updateBatteryBox() {
+    const visual = document.getElementById("battery-level");
+    const text = document.getElementById("battery-percent-text");
+    const clamped = Math.max(0, Math.min(100, battery));
+    visual.style.height = clamped + "%";
+    text.textContent = clamped.toFixed(0) + "%";
+  }
+
+  function updateGPSIndicator() {
+    const dot = document.getElementById("gps-dot");
+    const text = document.getElementById("gps-status-text");
+    if (!powerOn) {
+      dot.classList.add("gps-dot-lost");
+      text.textContent = "LINK OFF";
+    } else {
+      dot.classList.remove("gps-dot-lost");
+      text.textContent = "GPS LOCK";
+    }
+  }
+
+  function updateUI() {
+    document.getElementById("altitude").textContent = altitude.toFixed(1);
+    document.getElementById("speed").textContent = speed.toFixed(1);
+    document.getElementById("latitude").textContent = formatCoord(lat, true);
+    document.getElementById("longitude").textContent = formatCoord(lon, false);
+    document.getElementById("time-elapsed").textContent =
+      String(elapsed).padStart(2, "0") + " / " + duration + " s";
+    document.getElementById("footer-timer").textContent =
+      powerOn ? ("Simulation running… " + elapsed + " s") : "Simulation paused.";
+    updateBatteryBox();
+    updateSpeedometer();
+    updateAltitudeIndicator();
+    updateGPSIndicator();
+    updateStatus();
+  }
+
+  function step() {
+    if (!powerOn) {
+      // If OFF, do not change values
+      updateUI();
+      return;
+    }
+
+    if (elapsed >= duration) {
+      document.getElementById("timer-dot").style.background = "#ef4444";
+      document.getElementById("footer-timer").textContent =
+        "Telemetry simulation complete.";
+      updateUI();
+      return;
+    }
+
+    // Simulate changes
+    altitude += (Math.random() * 2.3 - 0.8);
+    altitude = Math.max(0, altitude);
+
+    speed += (Math.random() * 1.5 - 0.5);
+    speed = Math.max(0, Math.min(speed, 18));
+
+    battery -= (Math.random() * 0.7 + 0.5);
+    battery = Math.max(0, battery);
+
+    const delta = (speed / 10.0) * 0.00005;
+    lat += (Math.random() * 2 - 1) * delta;
+    lon += (Math.random() * 2 - 1) * delta;
+
+    elapsed += 1;
+    updateUI();
+
+    timerId = setTimeout(step, 1000);
+  }
+
+  function startSimulation() {
+    if (timerId) clearTimeout(timerId);
+    timerId = setTimeout(step, 800);
+  }
+
+  // Power (ON/OFF) toggle handler
+  document.getElementById("power-toggle").addEventListener("click", function () {
+    powerOn = !powerOn;
+    const toggle = document.getElementById("power-toggle");
+    const text = document.getElementById("toggle-text");
+    if (powerOn) {
+      toggle.classList.add("toggle-on");
+      text.textContent = "ON";
+      document.getElementById("timer-dot").style.background = "#22c55e";
+      startSimulation();
+    } else {
+      toggle.classList.remove("toggle-on");
+      text.textContent = "OFF";
+      if (timerId) clearTimeout(timerId);
+      document.getElementById("timer-dot").style.background = "#9ca3af";
+      updateUI();
+    }
+  });
+
+  // Initial UI + start
+  updateUI();
+  startSimulation();
+</script>
+
+</body>
+</html>
